@@ -295,10 +295,11 @@ function NameCard({ name, index, onChoose }: NameCardProps) {
   const rotate = useTransform(x, [-240, 0, 240], [-9, 0, 9]);
   const keepOpacity = useTransform(x, [20, 110], [0, 1]);
   const passOpacity = useTransform(x, [-110, -20], [1, 0]);
+  const toneClass = name.gender === "female" ? "tone-female" : name.gender === "male" ? "tone-male" : "tone-custom";
 
   return (
     <motion.article
-      className="name-card"
+      className={`name-card ${toneClass}`}
       style={{ x, rotate }}
       drag="x"
       dragConstraints={{ left: 0, right: 0 }}
@@ -595,7 +596,11 @@ function RoomView({ room, uid, demo, isLoadingMore, streamError, syncError, rece
             <>
               <div className="deck-stage">
                 {nextNames.map((name, index) => (
-                  <div className={`card-shadow card-shadow-${index + 1}`} key={name.id} aria-hidden="true" />
+                  <div
+                    className={`card-shadow card-shadow-${index + 1} ${name.gender === "female" ? "tone-female" : name.gender === "male" ? "tone-male" : "tone-custom"}`}
+                    key={name.id}
+                    aria-hidden="true"
+                  />
                 ))}
                 <AnimatePresence mode="popLayout">
                   <NameCard

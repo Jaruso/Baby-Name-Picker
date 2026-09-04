@@ -1007,6 +1007,24 @@ input:focus-visible {
   background: var(--paper);
 }
 
+.name-card.tone-female,
+.card-shadow.tone-female {
+  border-color: rgba(184, 103, 112, 0.25);
+  background: #fff8f6;
+}
+
+.name-card.tone-male,
+.card-shadow.tone-male {
+  border-color: rgba(91, 125, 150, 0.28);
+  background: #f5f8fb;
+}
+
+.name-card.tone-custom,
+.card-shadow.tone-custom {
+  border-color: rgba(92, 115, 92, 0.25);
+  background: #f7faf5;
+}
+
 .card-shadow-1 {
   transform: translate(11px, 11px) rotate(2deg);
 }
@@ -1035,6 +1053,18 @@ input:focus-visible {
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.tone-female .card-meta {
+  color: #a55f68;
+}
+
+.tone-male .card-meta {
+  color: #557891;
+}
+
+.tone-custom .card-meta {
+  color: var(--green);
 }
 
 .name-center {
