@@ -55,6 +55,7 @@ Anonymous Firebase identity and the most recent room code are persisted in the b
 - Presence is removed automatically when a browser disconnects.
 - Every kept or passed name remains in the room until it ends, providing the deduplication history for later API batches.
 - Each member can add a custom name suggestion. It is stored with that member's initial **like** and prioritized for the other member to review.
+- Either member can add one of the bundled name styles. The style flag is stored in the room, and both clients deterministically add its unseen names after the existing deck.
 - The ordering of each user's three most recent passes is kept in `sessionStorage`; undoing removes that decision from Firebase and reuses the name already stored in the room.
 - The room creator fetches and appends another batch when either participant nears the end of the currently loaded names.
 - Choosing **Leave room** removes that member and their choices.
@@ -72,7 +73,7 @@ The app requests version 1.4 of the [Random User Generator API](https://randomus
 nat=us,gb,ie,ca,au,nz
 ```
 
-Returned names are checked against the conventional English-language allowlist in `src/lib/names.ts`. The same list supplies fallback names when the API is unavailable.
+Returned names are checked against the conventional English-language allowlist in `src/lib/names.ts`. The same list supplies fallback names when the API is unavailable. Optional shared style packs live in `src/lib/nameStyles.ts`; they are bundled with the app, so extending a room does not require another API call or key.
 
 ## Architecture
 

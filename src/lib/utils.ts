@@ -1,4 +1,5 @@
 import type { NameOption, Room } from "../types";
+import { enabledStyleName, enabledStyleOptions } from "./nameStyles";
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -27,12 +28,16 @@ export function customSuggestionIds(room: Room): string[] {
     .map(({ id }) => id);
 }
 
+export function browseableNameIds(room: Room): string[] {
+  return [...room.order, ...enabledStyleOptions(room).map(({ id }) => id)];
+}
+
 export function roomNameIds(room: Room): string[] {
-  return [...room.order, ...customSuggestionIds(room)];
+  return [...browseableNameIds(room), ...customSuggestionIds(room)];
 }
 
 export function roomName(room: Room, nameId: string): NameOption | undefined {
-  return room.names[nameId] ?? room.suggestions?.[nameId];
+  return room.names?.[nameId] ?? room.suggestions?.[nameId] ?? enabledStyleName(room, nameId);
 }
 
 export function unmatchedLikeIds(room: Room, uid: string): string[] {

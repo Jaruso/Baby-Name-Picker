@@ -1,4 +1,5 @@
 export type NameFilter = "all" | "female" | "male";
+export type NameStyle = "modern" | "celtic" | "french" | "german" | "italian" | "nordic";
 export type Choice = "like" | "pass";
 
 export interface NameOption {
@@ -28,6 +29,7 @@ export interface Room {
   filter: NameFilter;
   source: "randomuser" | "fallback";
   names: Record<string, NameOption>;
+  styles?: Partial<Record<NameStyle, true>>;
   suggestions?: Record<string, CustomSuggestion>;
   order: string[];
   nextPage?: number;

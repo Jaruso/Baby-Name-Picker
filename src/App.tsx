@@ -1,9 +1,11 @@
 import {
   Check,
+  ChevronDown,
   ChevronRight,
   Copy,
   Heart,
   History,
+  Layers2,
   LogOut,
   Plus,
   Undo2,
@@ -12,10 +14,11 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion, useMotionValue, useTransform } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Choice, CustomSuggestion, NameFilter, NameOption, Room } from "./types";
+import type { Choice, CustomSuggestion, NameFilter, NameOption, NameStyle, Room } from "./types";
 import {
   createLiveRoom,
   appendNamesToLiveRoom,
+  enableNameStyle,
   endLiveRoom,
   isFirebaseConfigured,
   joinLiveRoom,
@@ -26,6 +29,7 @@ import {
   subscribeToRoom,
 } from "./lib/firebase";
 import { fetchNameBatch } from "./lib/names";
+import { NAME_STYLE_DEFINITIONS } from "./lib/nameStyles";
 import {
   clearActiveSession,
   type ActiveSession,
@@ -35,6 +39,7 @@ import {
 import { forgetPass, latestAvailablePass, rememberPass } from "./lib/passHistory";
 import {
   customSuggestionIds,
+  browseableNameIds,
   inviteUrl,
   matchIds,
   normalizeRoomCode,
@@ -332,11 +337,12 @@ interface RoomViewProps {
   recentPassCount: number;
   onChoose: (nameId: string, choice: Choice) => void;
   onSuggest: (name: string) => Promise<void>;
+  onAddStyle: (style: NameStyle) => Promise<void>;
   onBack: () => void;
   onExit: (endForEveryone: boolean) => Promise<void>;
 }
 
-function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount, onChoose, onSuggest, onBack, onExit }: RoomViewProps) {
+function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount, onChoose, onSuggest, onAddStyle, onBack, onExit }: RoomViewProps) {
   const [copied, setCopied] = useState(false);
   const [showExit, setShowExit] = useState(false);
   const [celebration, setCelebration] = useState<NameOption | null>(null);
@@ -344,6 +350,9 @@ function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount
   const [suggestedName, setSuggestedName] = useState("");
   const [suggestionError, setSuggestionError] = useState("");
   const [isSuggesting, setIsSuggesting] = useState(false);
+  const [stylesOpen, setStylesOpen] = useState(false);
+  const [styleError, setStyleError] = useState("");
+  const [addingStyle, setAddingStyle] = useState<NameStyle | null>(null);
 
   const myDecisions = room.decisions?.[uid] ?? {};
   const partnerSuggestionIds = customSuggestionIds(room)
@@ -351,7 +360,7 @@ function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount
     .reverse();
   const remainingIds = [
     ...partnerSuggestionIds,
-    ...room.order.filter((id) => !myDecisions[id]),
+    ...browseableNameIds(room).filter((id) => !myDecisions[id]),
   ];
   const currentId = remainingIds[0];
   const current = currentId ? roomName(room, currentId) : null;
@@ -362,6 +371,7 @@ function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount
   const onlineCount = Object.keys(room.presence ?? {}).length;
   const isCreator = room.createdBy === uid;
   const completed = roomNameIds(room).filter((id) => myDecisions[id]).length;
+  const enabledStyleCount = Object.keys(room.styles ?? {}).length;
 
   useEffect(() => {
     if (observedMatches.current === null) {
@@ -406,6 +416,18 @@ function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount
       setSuggestionError(caught instanceof Error ? caught.message : "Could not add that name.");
     } finally {
       setIsSuggesting(false);
+    }
+  };
+
+  const addStyle = async (style: NameStyle) => {
+    setAddingStyle(style);
+    setStyleError("");
+    try {
+      await onAddStyle(style);
+    } catch (caught) {
+      setStyleError(caught instanceof Error ? caught.message : "Could not add that style.");
+    } finally {
+      setAddingStyle(null);
     }
   };
 
@@ -462,6 +484,56 @@ function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount
               <p>{memberIds.length < 2 ? "It will be ready when your partner joins." : "It will appear next for your partner."}</p>
               {suggestionError && <p className="suggestion-error" role="alert">{suggestionError}</p>}
             </form>
+            <section className="name-styles" aria-labelledby="name-styles-title">
+              <button
+                className="styles-toggle"
+                type="button"
+                aria-expanded={stylesOpen}
+                aria-controls="name-style-list"
+                onClick={() => setStylesOpen((open) => !open)}
+              >
+                <Layers2 size={16} strokeWidth={1.7} />
+                <span>
+                  <small>Shared name pool</small>
+                  <strong id="name-styles-title">Add more styles</strong>
+                </span>
+                {enabledStyleCount > 0 && <em>{enabledStyleCount} added</em>}
+                <ChevronDown size={16} className={stylesOpen ? "open" : ""} />
+              </button>
+              <AnimatePresence initial={false}>
+                {stylesOpen && (
+                  <motion.div
+                    id="name-style-list"
+                    className="style-list"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.18 }}
+                  >
+                    <p>Add a collection for both of you. It only adds names neither of you has seen.</p>
+                    {NAME_STYLE_DEFINITIONS.map((style) => {
+                      const added = Boolean(room.styles?.[style.id]);
+                      return (
+                        <div className="style-option" key={style.id}>
+                          <span>
+                            <strong>{style.label}</strong>
+                            <small>{style.description}</small>
+                          </span>
+                          <button
+                            type="button"
+                            disabled={added || addingStyle !== null}
+                            onClick={() => void addStyle(style.id)}
+                          >
+                            {added ? "Added" : addingStyle === style.id ? "Adding" : "Add"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                    {styleError && <p className="style-error" role="alert">{styleError}</p>}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </section>
           </div>
 
           <section className="pending-picks" aria-labelledby="pending-picks-title">
@@ -527,7 +599,7 @@ function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount
                   <NameCard
                     key={current.id}
                     name={current}
-                    index={room.order.indexOf(current.id)}
+                    index={browseableNameIds(room).indexOf(current.id)}
                     onChoose={(choice) => onChoose(current.id, choice)}
                   />
                 </AnimatePresence>
@@ -690,7 +762,7 @@ function App() {
       0,
       ...Object.values(room.decisions ?? {}).map((choices) => Object.keys(choices).length),
     );
-    const namesReadyForFastestPerson = room.order.length - mostReviewed;
+    const namesReadyForFastestPerson = browseableNameIds(room).length - mostReviewed;
     if (namesReadyForFastestPerson > 12) return;
 
     const page = room.nextPage ?? 2;
@@ -707,7 +779,7 @@ function App() {
             room.filter,
             room.code,
             page,
-            Object.values(room.names).map(({ name }) => name),
+            roomNameIds(room).map((id) => roomName(room, id)?.name).filter(Boolean) as string[],
           );
           const partnerChoices = demoPartnerChoices(batch.names);
           setRoom((currentRoom) => currentRoom ? {
@@ -887,6 +959,15 @@ function App() {
     }) : currentRoom);
   };
 
+  const handleAddStyle = async (style: NameStyle): Promise<void> => {
+    if (!room || !uid || room.styles?.[style]) return;
+    if (!demo) await enableNameStyle(room, style);
+    setRoom((currentRoom) => currentRoom ? ({
+      ...currentRoom,
+      styles: { ...currentRoom.styles, [style]: true },
+    }) : currentRoom);
+  };
+
   const handleExit = async (endForEveryone: boolean) => {
     if (room && !demo) {
       if (endForEveryone) await endLiveRoom(room.code);
@@ -928,6 +1009,7 @@ function App() {
       recentPassCount={passHistory.length}
       onChoose={handleChoose}
       onSuggest={handleSuggest}
+      onAddStyle={handleAddStyle}
       onBack={handleBack}
       onExit={handleExit}
     />

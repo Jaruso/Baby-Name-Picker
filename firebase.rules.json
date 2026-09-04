@@ -47,6 +47,12 @@
           ".write": "auth != null && root.child('rooms').child($room).child('createdBy').val() === auth.uid && root.child('rooms').child($room).child('expiresAt').val() > now",
           ".validate": "newData.isBoolean()"
         },
+        "styles": {
+          "$style": {
+            ".write": "auth != null && !data.exists() && root.child('rooms').child($room).child('members').child(auth.uid).exists() && root.child('rooms').child($room).child('expiresAt').val() > now",
+            ".validate": "newData.val() === true && ($style === 'modern' || $style === 'celtic' || $style === 'french' || $style === 'german' || $style === 'italian' || $style === 'nordic')"
+          }
+        },
         "suggestions": {
           "$suggestionId": {
             ".write": "auth != null && !data.exists() && root.child('rooms').child($room).child('members').child(auth.uid).exists() && root.child('rooms').child($room).child('expiresAt').val() > now",

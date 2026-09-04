@@ -17,8 +17,9 @@ import {
   set,
   update,
 } from "firebase/database";
-import type { Choice, CustomSuggestion, NameFilter, NameOption, Room } from "../types";
+import type { Choice, CustomSuggestion, NameFilter, NameOption, NameStyle, Room } from "../types";
 import { fetchNameBatch } from "./names";
+import { enabledStyleOptions } from "./nameStyles";
 import { createRoomCode } from "./utils";
 
 const firebaseConfig = {
@@ -120,7 +121,11 @@ export async function appendNamesToLiveRoom(
     room.filter,
     room.code,
     page,
-    [...Object.values(room.names), ...Object.values(room.suggestions ?? {})].map(({ name }) => name),
+    [
+      ...Object.values(room.names),
+      ...Object.values(room.suggestions ?? {}),
+      ...enabledStyleOptions(room),
+    ].map(({ name }) => name),
   );
 
   if (batch.names.length) {
@@ -198,8 +203,26 @@ export async function removeChoice(code: string, uid: string, nameId: string): P
   await remove(ref(database, `rooms/${code}/decisions/${uid}/${nameId}`));
 }
 
+export async function enableNameStyle(room: Room, style: NameStyle): Promise<void> {
+  if (!database) throw new Error("Firebase is not configured.");
+  if (room.styles?.[style]) return;
+
+  // Styles are deterministic bundled collections. Saving only this shared flag
+  // lets both partners derive exactly the same extra names without a race over
+  // the room's ordered API deck.
+  await set(ref(database, `rooms/${room.code}/styles/${style}`), true);
+}
+
 function normalizeSuggestedName(value: string): string {
   return value.trim().replace(/\s+/g, " ");
+}
+
+function comparableNameKey(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLocaleLowerCase()
+    .replace(/[^a-z]/g, "");
 }
 
 export async function submitCustomName(
@@ -213,9 +236,13 @@ export async function submitCustomName(
     throw new Error("Use a name with letters, spaces, apostrophes, or hyphens.");
   }
 
-  const key = name.toLocaleLowerCase().replace(/[^a-z]/g, "");
-  const knownNames = [...Object.values(room.names), ...Object.values(room.suggestions ?? {})];
-  if (knownNames.some((option) => option.name.toLocaleLowerCase().replace(/[^a-z]/g, "") === key)) {
+  const key = comparableNameKey(name);
+  const knownNames = [
+    ...Object.values(room.names),
+    ...Object.values(room.suggestions ?? {}),
+    ...enabledStyleOptions(room),
+  ];
+  if (knownNames.some((option) => comparableNameKey(option.name) === key)) {
     throw new Error("That name is already in this room.");
   }
 

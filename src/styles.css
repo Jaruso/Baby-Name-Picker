@@ -714,6 +714,134 @@ input:focus-visible {
   color: var(--accent-dark);
 }
 
+.name-styles {
+  margin-top: 22px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.styles-toggle {
+  display: grid;
+  width: 100%;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.styles-toggle > svg:first-child {
+  color: var(--green);
+}
+
+.styles-toggle > span {
+  display: grid;
+  gap: 2px;
+}
+
+.styles-toggle small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.styles-toggle strong {
+  font-family: "Newsreader", serif;
+  font-size: 19px;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+}
+
+.styles-toggle em {
+  color: var(--green);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.styles-toggle > svg:last-child {
+  color: var(--muted);
+  transition: transform 180ms ease;
+}
+
+.styles-toggle > svg.open {
+  transform: rotate(180deg);
+}
+
+.style-list {
+  overflow: hidden;
+}
+
+.style-list > p {
+  margin: 0 0 9px;
+  color: var(--muted);
+  font-family: "Newsreader", serif;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.style-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  border-top: 1px solid rgba(37, 34, 31, 0.1);
+}
+
+.style-option > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.style-option strong {
+  font-family: "Newsreader", serif;
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: -0.025em;
+}
+
+.style-option small {
+  overflow: hidden;
+  color: #958c81;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.style-option button {
+  min-width: 42px;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: var(--green);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.style-option button:disabled {
+  cursor: default;
+  color: #a49a8d;
+}
+
+.style-error {
+  margin: 8px 0 12px !important;
+  color: var(--accent-dark) !important;
+  font-family: "DM Sans", sans-serif !important;
+  font-size: 10px !important;
+}
+
 .pending-picks {
   min-width: 0;
   margin: clamp(30px, 5vh, 68px) 0;

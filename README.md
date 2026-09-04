@@ -33,13 +33,15 @@ Have a name in mind already? Add it from the room sidebar. It is automatically m
 
 The name stream automatically replenishes as you browse. A name you have already kept or passed will not appear again in that room.
 
+Need a wider pool? Open **Add more styles** in the room sidebar. Either person can add a shared collection—Modern US & UK, Irish & Scottish, French, German, Italian, or Nordic—and its unseen names are added for both of you.
+
 There is no account to create and no list of one person's private choices for the other person to inspect.
 
 If you return from the same browser within 24 hours, choose **Resume room** on the home screen to continue where you left off.
 
 ## The name collection
 
-Baby Name Picker focuses on conventional English-language names commonly used in the United States, United Kingdom, Ireland, Canada, Australia, and New Zealand.
+Baby Name Picker starts with conventional English-language names commonly used in the United States, United Kingdom, Ireland, Canada, Australia, and New Zealand. You can optionally add curated European style collections to a room when you want a wider variety.
 
 Names are randomized for each new room using [Random User Generator](https://randomuser.me/) and checked against a curated collection. A built-in copy of that collection keeps the app working if the public service is temporarily unavailable.
 
