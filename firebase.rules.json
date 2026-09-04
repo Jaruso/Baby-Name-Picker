@@ -26,14 +26,14 @@
           ".validate": "newData.val() === 'randomuser' || newData.val() === 'fallback'"
         },
         "names": {
-          ".validate": "newData.hasChildren() && newData.numChildren() <= 80"
+          ".validate": "newData.hasChildren()"
         },
         "order": {
-          ".validate": "newData.hasChildren() && newData.numChildren() <= 80"
+          ".validate": "newData.hasChildren()"
         },
         "members": {
           "$uid": {
-            ".write": "auth != null && $uid === auth.uid && root.child('rooms').child($room).child('expiresAt').val() > now && (data.exists() || root.child('rooms').child($room).child('members').numChildren() < 2)",
+            ".write": "auth != null && $uid === auth.uid && root.child('rooms').child($room).child('expiresAt').val() > now",
             ".validate": "newData.hasChildren(['name', 'joinedAt']) && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 28 && newData.child('joinedAt').isNumber()"
           }
         },
