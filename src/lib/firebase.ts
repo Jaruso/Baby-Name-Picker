@@ -71,7 +71,6 @@ export async function createLiveRoom(
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const code = createRoomCode();
     const roomRef = ref(database, `rooms/${code}`);
-    if ((await get(roomRef)).exists()) continue;
 
     const deck = await fetchNameDeck(filter, code);
     const names = Object.fromEntries(deck.names.map((name) => [name.id, name]));
@@ -89,9 +88,15 @@ export async function createLiveRoom(
       presence: { [uid]: true },
       decisions: {},
     };
-    await set(roomRef, room);
-    await markPresent(code, uid);
-    return { room, uid };
+    try {
+      // The create-only database rule is the collision check. Reading an unused
+      // code first would be rejected because nonexistent rooms are not readable.
+      await set(roomRef, room);
+      await markPresent(code, uid);
+      return { room, uid };
+    } catch (error) {
+      if (attempt === 4) throw error;
+    }
   }
 
   throw new Error("Could not reserve a room code. Please try again.");
