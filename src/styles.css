@@ -631,6 +631,13 @@ input:focus-visible {
   font-size: 10px;
 }
 
+.session-progress .stream-error {
+  max-width: 230px;
+  margin-top: 9px;
+  color: var(--accent-dark);
+  line-height: 1.45;
+}
+
 .privacy-note {
   display: flex;
   align-items: flex-start;
@@ -768,6 +775,15 @@ input:focus-visible {
   grid-template-columns: 1fr 1fr;
   gap: 9px;
   margin-top: 24px;
+}
+
+.stream-waiting .finished-mark {
+  background: var(--ink);
+}
+
+.stream-waiting .finished-mark .loader {
+  display: block;
+  margin: 0;
 }
 
 .decision-button {

@@ -22,6 +22,8 @@ export interface Room {
   source: "randomuser" | "fallback";
   names: Record<string, NameOption>;
   order: string[];
+  nextPage?: number;
+  exhausted?: boolean;
   members: Record<string, Member>;
   presence?: Record<string, boolean>;
   decisions?: Record<string, Record<string, Choice>>;

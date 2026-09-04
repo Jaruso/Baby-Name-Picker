@@ -51,6 +51,8 @@ Firebase web configuration values identify the Firebase project; they are not se
 
 - Rooms reject client reads after 24 hours.
 - Presence is removed automatically when a browser disconnects.
+- Every kept or passed name remains in the room until it ends, providing the deduplication history for later API batches.
+- The room creator fetches and appends another batch when either participant nears the end of the currently loaded names.
 - Choosing **Leave room** removes that member and their choices.
 - The room creator can choose **End for everyone** to delete the room immediately.
 
@@ -72,11 +74,11 @@ Returned names are checked against the conventional English-language allowlist i
 
 ```text
 GitHub Pages (React + TypeScript + Vite)
-  ├─ fetches and filters a name deck from randomuser.me
+  ├─ fetches and filters paginated name batches from randomuser.me
   ├─ falls back to a bundled name collection
   └─ synchronizes room state through Firebase
        ├─ Anonymous Authentication (browser-session identity)
-       └─ Realtime Database (rooms, members, presence, choices)
+       └─ Realtime Database (name history, members, presence, choices)
 ```
 
 ## GitHub Pages deployment

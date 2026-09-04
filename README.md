@@ -26,6 +26,8 @@ Swipe through the same names separately. Individual choices stay out of sight, a
    - Swipe right or select **Keep** to save a name privately.
 5. When you both keep the same name, it appears immediately under **Your matches**.
 
+The name stream automatically replenishes as you browse. A name you have already kept or passed will not appear again in that room.
+
 There is no account to create and no list of one person's private choices for the other person to inspect.
 
 ## The name collection
@@ -37,7 +39,8 @@ Names are randomized for each new room using [Random User Generator](https://ran
 ## Your room
 
 - A room is made for two people.
-- Both people receive the same name deck but can move through it at their own pace.
+- Both people receive the same continuously replenished name stream but can move through it at their own pace.
+- Kept and passed names remain in the room's temporary history, preventing repeats for the life of the session.
 - A room remains available for up to 24 hours.
 - Leaving removes your choices; ending the room removes the shared session for both people.
 - Anyone with the invite link or room code can attempt to join, so share it only with your partner.
@@ -58,7 +61,7 @@ Yes. The interface is designed for touch gestures on phones and also supports bu
 
 ### What happens when we are finished?
 
-The room creator can select **End for everyone** to remove the room immediately. Rooms also become inaccessible after 24 hours.
+Keep browsing for as long as the app can find unseen names in its English-language collection. The room creator can select **End for everyone** to remove the room immediately. Rooms also become inaccessible after 24 hours.
 
 ---
 

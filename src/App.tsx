@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Choice, NameFilter, NameOption, Room } from "./types";
 import {
   createLiveRoom,
+  appendNamesToLiveRoom,
   endLiveRoom,
   isFirebaseConfigured,
   joinLiveRoom,
@@ -19,19 +20,13 @@ import {
   saveChoice,
   subscribeToRoom,
 } from "./lib/firebase";
-import { fetchNameDeck } from "./lib/names";
+import { fetchNameBatch } from "./lib/names";
 import { inviteUrl, matchIds, normalizeRoomCode, originLabel } from "./lib/utils";
 
 type HomeMode = "create" | "join";
 
 function createDemoRoom(names: NameOption[], filter: NameFilter, source: Room["source"]): Room {
-  const partnerChoices = Object.fromEntries(
-    names
-      .filter((name) =>
-        [...name.name].reduce((total, character) => total + character.charCodeAt(0), 0) % 3 !== 0,
-      )
-      .map((name) => [name.id, "like" as const]),
-  );
+  const partnerChoices = demoPartnerChoices(names);
   const now = Date.now();
 
   return {
@@ -43,6 +38,8 @@ function createDemoRoom(names: NameOption[], filter: NameFilter, source: Room["s
     source,
     names: Object.fromEntries(names.map((name) => [name.id, name])),
     order: names.map((name) => name.id),
+    nextPage: 2,
+    exhausted: false,
     members: {
       you: { name: "You", joinedAt: now },
       partner: { name: "Alex (demo)", joinedAt: now },
@@ -50,6 +47,16 @@ function createDemoRoom(names: NameOption[], filter: NameFilter, source: Room["s
     presence: { you: true, partner: true },
     decisions: { partner: partnerChoices },
   };
+}
+
+function demoPartnerChoices(names: NameOption[]): Record<string, Choice> {
+  return Object.fromEntries(
+    names
+      .filter((name) =>
+        [...name.name].reduce((total, character) => total + character.charCodeAt(0), 0) % 3 !== 0,
+      )
+      .map((name) => [name.id, "like" as const]),
+  );
 }
 
 function BrandMark() {
@@ -194,7 +201,7 @@ function Home({ busy, error, initialCode, onCreate, onJoin }: HomeProps) {
           <div className="sample-card sample-card-back"><span>Elio</span></div>
           <div className="sample-card sample-card-mid"><span>Jude</span></div>
           <div className="sample-card sample-card-front">
-            <span className="sample-index">24 / 60</span>
+            <span className="sample-index">Name 24</span>
             <span className="sample-name">Mara</span>
             <span className="sample-origin">A name with roots in many places</span>
             <svg className="hand-circle" viewBox="0 0 310 150" fill="none" aria-hidden="true">
@@ -215,11 +222,10 @@ function Home({ busy, error, initialCode, onCreate, onJoin }: HomeProps) {
 interface NameCardProps {
   name: NameOption;
   index: number;
-  total: number;
   onChoose: (choice: Choice) => void;
 }
 
-function NameCard({ name, index, total, onChoose }: NameCardProps) {
+function NameCard({ name, index, onChoose }: NameCardProps) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-240, 0, 240], [-9, 0, 9]);
   const keepOpacity = useTransform(x, [20, 110], [0, 1]);
@@ -245,7 +251,7 @@ function NameCard({ name, index, total, onChoose }: NameCardProps) {
       <motion.span className="swipe-stamp keep-stamp" style={{ opacity: keepOpacity }}>keep</motion.span>
       <motion.span className="swipe-stamp pass-stamp" style={{ opacity: passOpacity }}>pass</motion.span>
       <div className="card-meta">
-        <span>{String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}</span>
+        <span>Name {String(index + 1).padStart(2, "0")}</span>
         <span>{name.gender === "female" ? "Girl" : "Boy"}</span>
       </div>
       <div className="name-center">
@@ -261,11 +267,13 @@ interface RoomViewProps {
   room: Room;
   uid: string;
   demo: boolean;
+  isLoadingMore: boolean;
+  streamError: string;
   onChoose: (nameId: string, choice: Choice) => void;
   onExit: (endForEveryone: boolean) => Promise<void>;
 }
 
-function RoomView({ room, uid, demo, onChoose, onExit }: RoomViewProps) {
+function RoomView({ room, uid, demo, isLoadingMore, streamError, onChoose, onExit }: RoomViewProps) {
   const [copied, setCopied] = useState(false);
   const [showExit, setShowExit] = useState(false);
   const [celebration, setCelebration] = useState<NameOption | null>(null);
@@ -348,11 +356,14 @@ function RoomView({ room, uid, demo, onChoose, onExit }: RoomViewProps) {
 
           <div className="session-progress">
             <div className="progress-label">
-              <span>Your progress</span>
-              <strong>{Math.round((completed / room.order.length) * 100)}%</strong>
+              <span>Names reviewed</span>
+              <strong>{completed}</strong>
             </div>
-            <div className="progress-track"><span style={{ width: `${(completed / room.order.length) * 100}%` }} /></div>
-            <p>{completed} decided · {remainingIds.length} left</p>
+            <p>
+              {remainingIds.length} ready
+              {isLoadingMore ? " · finding more…" : " · no repeats"}
+            </p>
+            {streamError && <p className="stream-error">{streamError}</p>}
           </div>
 
           <div className="privacy-note">
@@ -373,7 +384,6 @@ function RoomView({ room, uid, demo, onChoose, onExit }: RoomViewProps) {
                     key={current.id}
                     name={current}
                     index={room.order.indexOf(current.id)}
-                    total={room.order.length}
                     onChoose={(choice) => onChoose(current.id, choice)}
                   />
                 </AnimatePresence>
@@ -391,12 +401,19 @@ function RoomView({ room, uid, demo, onChoose, onExit }: RoomViewProps) {
                 </button>
               </div>
             </>
+          ) : !room.exhausted ? (
+            <div className="finished-state stream-waiting">
+              <span className="finished-mark"><span className="loader" /></span>
+              <p className="eyebrow">The stream is replenishing</p>
+              <h2>{isCreator ? "Finding names you haven’t seen." : "Waiting for more names."}</h2>
+              <p>{isCreator ? "New names will appear here automatically." : "Keep this page open while the room creator adds the next batch."}</p>
+            </div>
           ) : (
             <div className="finished-state">
               <span className="finished-mark"><Check size={30} /></span>
-              <p className="eyebrow">Your list is complete</p>
+              <p className="eyebrow">Every available name reviewed</p>
               <h2>{matches.length ? "You found a few worth saying twice." : "Now, let the names settle."}</h2>
-              <p>{memberIds.length < 2 ? "Invite your partner to find your shared favorites." : "You can leave this page open while your partner finishes."}</p>
+              <p>The app skipped every repeat and reached the end of its current English-name collection.</p>
               <button type="button" onClick={() => setShowExit(true)}>Finish session <ChevronRight size={17} /></button>
             </div>
           )}
@@ -475,6 +492,9 @@ function App() {
   const [demo, setDemo] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [streamError, setStreamError] = useState("");
+  const requestedPages = useRef(new Set<string>());
   const roomCode = room?.code;
 
   useEffect(() => {
@@ -495,9 +515,65 @@ function App() {
     );
   }, [demo, roomCode]);
 
+  useEffect(() => {
+    if (!room || !uid || room.exhausted || room.createdBy !== uid) return;
+
+    const mostReviewed = Math.max(
+      0,
+      ...Object.values(room.decisions ?? {}).map((choices) => Object.keys(choices).length),
+    );
+    const namesReadyForFastestPerson = room.order.length - mostReviewed;
+    if (namesReadyForFastestPerson > 12) return;
+
+    const page = room.nextPage ?? 2;
+    const requestKey = `${room.code}:${page}`;
+    if (requestedPages.current.has(requestKey)) return;
+    requestedPages.current.add(requestKey);
+    setIsLoadingMore(true);
+    setStreamError("");
+
+    const replenish = async () => {
+      try {
+        if (demo) {
+          const batch = await fetchNameBatch(
+            room.filter,
+            room.code,
+            page,
+            Object.values(room.names).map(({ name }) => name),
+          );
+          const partnerChoices = demoPartnerChoices(batch.names);
+          setRoom((currentRoom) => currentRoom ? {
+            ...currentRoom,
+            names: {
+              ...currentRoom.names,
+              ...Object.fromEntries(batch.names.map((name) => [name.id, name])),
+            },
+            order: [...currentRoom.order, ...batch.names.map((name) => name.id)],
+            nextPage: batch.nextPage,
+            exhausted: batch.exhausted,
+            decisions: {
+              ...currentRoom.decisions,
+              partner: { ...currentRoom.decisions?.partner, ...partnerChoices },
+            },
+          } : currentRoom);
+        } else {
+          await appendNamesToLiveRoom(room, uid);
+        }
+      } catch {
+        requestedPages.current.delete(requestKey);
+        setStreamError("More names could not be loaded. We’ll try again.");
+      } finally {
+        setIsLoadingMore(false);
+      }
+    };
+
+    void replenish();
+  }, [demo, room, uid]);
+
   const handleCreate = async (nickname: string, filter: NameFilter) => {
     setBusy(true);
     setError("");
+    setStreamError("");
     try {
       if (isFirebaseConfigured) {
         const result = await createLiveRoom(nickname, filter);
@@ -506,8 +582,12 @@ function App() {
         setDemo(false);
         window.history.replaceState({}, "", `?room=${result.room.code}`);
       } else {
-        const deck = await fetchNameDeck(filter, "demo42");
-        setRoom(createDemoRoom(deck.names, filter, deck.source));
+        const deck = await fetchNameBatch(filter, "demo42");
+        setRoom({
+          ...createDemoRoom(deck.names, filter, deck.source),
+          nextPage: deck.nextPage,
+          exhausted: deck.exhausted,
+        });
         setUid("you");
         setDemo(true);
       }
@@ -521,6 +601,7 @@ function App() {
   const handleJoin = async (nickname: string, code: string) => {
     setBusy(true);
     setError("");
+    setStreamError("");
     try {
       const result = await joinLiveRoom(code, nickname);
       setRoom(result.room);
@@ -566,7 +647,17 @@ function App() {
     return <Home busy={busy} error={error} initialCode={initialCode} onCreate={handleCreate} onJoin={handleJoin} />;
   }
 
-  return <RoomView room={room} uid={uid} demo={demo} onChoose={handleChoose} onExit={handleExit} />;
+  return (
+    <RoomView
+      room={room}
+      uid={uid}
+      demo={demo}
+      isLoadingMore={isLoadingMore}
+      streamError={streamError}
+      onChoose={handleChoose}
+      onExit={handleExit}
+    />
+  );
 }
 
 export default App;

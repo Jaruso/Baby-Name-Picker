@@ -6,7 +6,7 @@
       "$room": {
         ".read": "auth != null && data.child('expiresAt').val() > now",
         ".write": "auth != null && ((!data.exists() && newData.child('createdBy').val() === auth.uid) || (data.exists() && !newData.exists() && data.child('createdBy').val() === auth.uid))",
-        ".validate": "newData.hasChildren(['code', 'createdBy', 'createdAt', 'expiresAt', 'filter', 'source', 'names', 'order', 'members'])",
+        ".validate": "newData.hasChildren(['code', 'createdBy', 'createdAt', 'expiresAt', 'filter', 'source', 'names', 'order', 'nextPage', 'exhausted', 'members'])",
         "code": {
           ".validate": "newData.isString() && newData.val() === $room && newData.val().matches(/^[A-HJ-NP-Z2-9]{6}$/)"
         },
@@ -26,10 +26,26 @@
           ".validate": "newData.val() === 'randomuser' || newData.val() === 'fallback'"
         },
         "names": {
-          ".validate": "newData.hasChildren()"
+          ".validate": "newData.hasChildren()",
+          "$nameId": {
+            ".write": "auth != null && !data.exists() && root.child('rooms').child($room).child('createdBy').val() === auth.uid && root.child('rooms').child($room).child('expiresAt').val() > now",
+            ".validate": "newData.hasChildren(['id', 'name', 'gender', 'origin']) && newData.child('id').val() === $nameId && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 40 && (newData.child('gender').val() === 'female' || newData.child('gender').val() === 'male') && newData.child('origin').isString()"
+          }
         },
         "order": {
-          ".validate": "newData.hasChildren()"
+          ".validate": "newData.hasChildren()",
+          "$index": {
+            ".write": "auth != null && !data.exists() && root.child('rooms').child($room).child('createdBy').val() === auth.uid && root.child('rooms').child($room).child('expiresAt').val() > now",
+            ".validate": "newData.isString() && newData.parent().parent().child('names').child(newData.val()).exists()"
+          }
+        },
+        "nextPage": {
+          ".write": "auth != null && root.child('rooms').child($room).child('createdBy').val() === auth.uid && root.child('rooms').child($room).child('expiresAt').val() > now",
+          ".validate": "newData.isNumber() && ((!data.exists() && newData.val() >= 2) || (data.exists() && newData.val() === data.val() + 1))"
+        },
+        "exhausted": {
+          ".write": "auth != null && root.child('rooms').child($room).child('createdBy').val() === auth.uid && root.child('rooms').child($room).child('expiresAt').val() > now",
+          ".validate": "newData.isBoolean()"
         },
         "members": {
           "$uid": {
