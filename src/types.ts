@@ -4,8 +4,15 @@ export type Choice = "like" | "pass";
 export interface NameOption {
   id: string;
   name: string;
-  gender: "female" | "male";
+  gender: "female" | "male" | "custom";
   origin: string;
+}
+
+export interface CustomSuggestion extends NameOption {
+  gender: "custom";
+  origin: "CUSTOM";
+  submittedBy: string;
+  createdAt: number;
 }
 
 export interface Member {
@@ -21,6 +28,7 @@ export interface Room {
   filter: NameFilter;
   source: "randomuser" | "fallback";
   names: Record<string, NameOption>;
+  suggestions?: Record<string, CustomSuggestion>;
   order: string[];
   nextPage?: number;
   exhausted?: boolean;

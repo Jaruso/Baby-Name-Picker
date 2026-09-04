@@ -47,6 +47,12 @@
           ".write": "auth != null && root.child('rooms').child($room).child('createdBy').val() === auth.uid && root.child('rooms').child($room).child('expiresAt').val() > now",
           ".validate": "newData.isBoolean()"
         },
+        "suggestions": {
+          "$suggestionId": {
+            ".write": "auth != null && !data.exists() && root.child('rooms').child($room).child('members').child(auth.uid).exists() && root.child('rooms').child($room).child('expiresAt').val() > now",
+            ".validate": "newData.hasChildren(['id', 'name', 'gender', 'origin', 'submittedBy', 'createdAt']) && newData.child('id').val() === $suggestionId && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 40 && newData.child('gender').val() === 'custom' && newData.child('origin').val() === 'CUSTOM' && newData.child('submittedBy').val() === auth.uid && newData.child('createdAt').isNumber()"
+          }
+        },
         "members": {
           "$uid": {
             ".write": "auth != null && $uid === auth.uid && root.child('rooms').child($room).child('expiresAt').val() > now",
@@ -62,7 +68,7 @@
         "decisions": {
           "$uid": {
             "$nameId": {
-              ".write": "auth != null && $uid === auth.uid && root.child('rooms').child($room).child('members').child($uid).exists() && root.child('rooms').child($room).child('names').child($nameId).exists()",
+              ".write": "auth != null && $uid === auth.uid && root.child('rooms').child($room).child('members').child($uid).exists() && (root.child('rooms').child($room).child('names').child($nameId).exists() || newData.parent().parent().parent().child('suggestions').child($nameId).exists())",
               ".validate": "newData.val() === 'like' || newData.val() === 'pass'"
             }
           }

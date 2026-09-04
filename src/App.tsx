@@ -5,13 +5,14 @@ import {
   Heart,
   History,
   LogOut,
+  Plus,
   Undo2,
   Users,
   X,
 } from "lucide-react";
 import { AnimatePresence, motion, useMotionValue, useTransform } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Choice, NameFilter, NameOption, Room } from "./types";
+import type { Choice, CustomSuggestion, NameFilter, NameOption, Room } from "./types";
 import {
   createLiveRoom,
   appendNamesToLiveRoom,
@@ -21,6 +22,7 @@ import {
   leaveLiveRoom,
   removeChoice,
   saveChoice,
+  submitCustomName,
   subscribeToRoom,
 } from "./lib/firebase";
 import { fetchNameBatch } from "./lib/names";
@@ -31,7 +33,16 @@ import {
   saveActiveSession,
 } from "./lib/activeSession";
 import { forgetPass, latestAvailablePass, rememberPass } from "./lib/passHistory";
-import { inviteUrl, matchIds, normalizeRoomCode, originLabel, unmatchedLikeIds } from "./lib/utils";
+import {
+  customSuggestionIds,
+  inviteUrl,
+  matchIds,
+  normalizeRoomCode,
+  originLabel,
+  roomName,
+  roomNameIds,
+  unmatchedLikeIds,
+} from "./lib/utils";
 
 type HomeMode = "create" | "join";
 
@@ -300,12 +311,12 @@ function NameCard({ name, index, onChoose }: NameCardProps) {
       <motion.span className="swipe-stamp keep-stamp" style={{ opacity: keepOpacity }}>keep</motion.span>
       <motion.span className="swipe-stamp pass-stamp" style={{ opacity: passOpacity }}>pass</motion.span>
       <div className="card-meta">
-        <span>Name {String(index + 1).padStart(2, "0")}</span>
-        <span>{name.gender === "female" ? "Girl" : "Boy"}</span>
+        <span>{index >= 0 ? `Name ${String(index + 1).padStart(2, "0")}` : "Suggested name"}</span>
+        <span>{name.gender === "custom" ? "Suggested" : name.gender === "female" ? "Girl" : "Boy"}</span>
       </div>
       <div className="name-center">
         <h2 className={name.name.length >= 11 ? "very-long-name" : name.name.length >= 9 ? "long-name" : ""}>{name.name}</h2>
-        <p>Found in {originLabel(name.origin)}</p>
+        <p>{name.gender === "custom" ? "A name suggested in your room" : `Found in ${originLabel(name.origin)}`}</p>
       </div>
       <p className="drag-note">Drag the card, or use the buttons below</p>
     </motion.article>
@@ -320,27 +331,37 @@ interface RoomViewProps {
   streamError: string;
   recentPassCount: number;
   onChoose: (nameId: string, choice: Choice) => void;
+  onSuggest: (name: string) => Promise<void>;
   onBack: () => void;
   onExit: (endForEveryone: boolean) => Promise<void>;
 }
 
-function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount, onChoose, onBack, onExit }: RoomViewProps) {
+function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount, onChoose, onSuggest, onBack, onExit }: RoomViewProps) {
   const [copied, setCopied] = useState(false);
   const [showExit, setShowExit] = useState(false);
   const [celebration, setCelebration] = useState<NameOption | null>(null);
   const observedMatches = useRef<string[] | null>(null);
+  const [suggestedName, setSuggestedName] = useState("");
+  const [suggestionError, setSuggestionError] = useState("");
+  const [isSuggesting, setIsSuggesting] = useState(false);
 
   const myDecisions = room.decisions?.[uid] ?? {};
-  const remainingIds = room.order.filter((id) => !myDecisions[id]);
+  const partnerSuggestionIds = customSuggestionIds(room)
+    .filter((id) => room.suggestions?.[id]?.submittedBy !== uid && !myDecisions[id])
+    .reverse();
+  const remainingIds = [
+    ...partnerSuggestionIds,
+    ...room.order.filter((id) => !myDecisions[id]),
+  ];
   const currentId = remainingIds[0];
-  const current = currentId ? room.names[currentId] : null;
-  const nextNames = remainingIds.slice(1, 3).map((id) => room.names[id]);
+  const current = currentId ? roomName(room, currentId) : null;
+  const nextNames = remainingIds.slice(1, 3).map((id) => roomName(room, id)).filter(Boolean) as NameOption[];
   const matches = useMemo(() => matchIds(room), [room]);
   const unmatchedLikes = useMemo(() => unmatchedLikeIds(room, uid), [room, uid]);
   const memberIds = Object.keys(room.members ?? {});
   const onlineCount = Object.keys(room.presence ?? {}).length;
   const isCreator = room.createdBy === uid;
-  const completed = room.order.length - remainingIds.length;
+  const completed = roomNameIds(room).filter((id) => myDecisions[id]).length;
 
   useEffect(() => {
     if (observedMatches.current === null) {
@@ -349,8 +370,8 @@ function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount
     }
     const newMatch = matches.find((id) => !observedMatches.current?.includes(id));
     observedMatches.current = matches;
-    if (newMatch) setCelebration(room.names[newMatch]);
-  }, [matches, room.names]);
+    if (newMatch) setCelebration(roomName(room, newMatch) ?? null);
+  }, [matches, room]);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
@@ -371,6 +392,21 @@ function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount
     await navigator.clipboard.writeText(inviteUrl(room.code));
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
+  };
+
+  const submitSuggestion = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!suggestedName.trim()) return;
+    setIsSuggesting(true);
+    setSuggestionError("");
+    try {
+      await onSuggest(suggestedName);
+      setSuggestedName("");
+    } catch (caught) {
+      setSuggestionError(caught instanceof Error ? caught.message : "Could not add that name.");
+    } finally {
+      setIsSuggesting(false);
+    }
   };
 
   return (
@@ -408,6 +444,24 @@ function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount
                 ? "Send the invite link to your partner. Your choices stay hidden."
                 : `You and ${room.members[memberIds.find((id) => id !== uid) ?? uid]?.name} are choosing independently.`}
             </p>
+            <form className="suggestion-form" onSubmit={submitSuggestion}>
+              <label htmlFor="suggested-name">Have a name in mind?</label>
+              <div>
+                <input
+                  id="suggested-name"
+                  value={suggestedName}
+                  maxLength={40}
+                  placeholder="Add a name"
+                  onChange={(event) => setSuggestedName(event.target.value)}
+                />
+                <button type="submit" disabled={isSuggesting || !suggestedName.trim()}>
+                  <Plus size={16} strokeWidth={2} />
+                  <span>{isSuggesting ? "Adding" : "Suggest"}</span>
+                </button>
+              </div>
+              <p>{memberIds.length < 2 ? "It will be ready when your partner joins." : "It will appear next for your partner."}</p>
+              {suggestionError && <p className="suggestion-error" role="alert">{suggestionError}</p>}
+            </form>
           </div>
 
           <section className="pending-picks" aria-labelledby="pending-picks-title">
@@ -431,7 +485,7 @@ function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount
                       exit={{ opacity: 0, y: -7 }}
                       transition={{ duration: 0.18 }}
                     >
-                      <strong>{room.names[id].name}</strong>
+                      <strong>{roomName(room, id)?.name}</strong>
                       <span>Waiting</span>
                     </motion.li>
                   ))}
@@ -535,7 +589,7 @@ function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount
               {matches.map((id, index) => (
                 <motion.li key={id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}>
                   <span>{String(index + 1).padStart(2, "0")}</span>
-                  <strong>{room.names[id].name}</strong>
+                  <strong>{roomName(room, id)?.name ?? "Saved name"}</strong>
                   <Heart size={15} fill="currentColor" />
                 </motion.li>
               ))}
@@ -767,7 +821,7 @@ function App() {
     if (!room || !uid) return;
     const nameId = latestAvailablePass(
       passHistory,
-      (id) => Boolean(room.names[id] && room.decisions?.[uid]?.[id] === "pass"),
+      (id) => Boolean(roomName(room, id) && room.decisions?.[uid]?.[id] === "pass"),
     );
 
     if (!nameId) {
@@ -795,6 +849,43 @@ function App() {
       });
     }
   }, [demo, passHistory, room, uid]);
+
+  const handleSuggest = async (rawName: string): Promise<void> => {
+    if (!room || !uid) return;
+    if (demo) {
+      const name = rawName.trim().replace(/\s+/g, " ");
+      if (!/^[A-Za-z][A-Za-z' -]{0,38}$/.test(name)) {
+        throw new Error("Use a name with letters, spaces, apostrophes, or hyphens.");
+      }
+      const suggestion: CustomSuggestion = {
+        id: `custom-${Date.now()}`,
+        name,
+        gender: "custom",
+        origin: "CUSTOM",
+        submittedBy: uid,
+        createdAt: Date.now(),
+      };
+      setRoom((currentRoom) => currentRoom ? ({
+        ...currentRoom,
+        suggestions: { ...currentRoom.suggestions, [suggestion.id]: suggestion },
+        decisions: {
+          ...currentRoom.decisions,
+          [uid]: { ...currentRoom.decisions?.[uid], [suggestion.id]: "like" },
+        },
+      }) : currentRoom);
+      return;
+    }
+
+    const suggestion = await submitCustomName(room, uid, rawName);
+    setRoom((currentRoom) => currentRoom ? ({
+      ...currentRoom,
+      suggestions: { ...currentRoom.suggestions, [suggestion.id]: suggestion },
+      decisions: {
+        ...currentRoom.decisions,
+        [uid]: { ...currentRoom.decisions?.[uid], [suggestion.id]: "like" },
+      },
+    }) : currentRoom);
+  };
 
   const handleExit = async (endForEveryone: boolean) => {
     if (room && !demo) {
@@ -836,6 +927,7 @@ function App() {
       streamError={streamError}
       recentPassCount={passHistory.length}
       onChoose={handleChoose}
+      onSuggest={handleSuggest}
       onBack={handleBack}
       onExit={handleExit}
     />

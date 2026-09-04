@@ -645,6 +645,75 @@ input:focus-visible {
   line-height: 1.55;
 }
 
+.suggestion-form {
+  margin-top: 24px;
+}
+
+.suggestion-form label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.suggestion-form > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  border-bottom: 1px solid rgba(37, 34, 31, 0.34);
+}
+
+.suggestion-form input {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  padding: 0 6px 0 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: "Newsreader", serif;
+  font-size: 20px;
+}
+
+.suggestion-form input:focus {
+  outline: none;
+}
+
+.suggestion-form input::placeholder {
+  color: #aca397;
+}
+
+.suggestion-form button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 0 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--green);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.suggestion-form button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.suggestion-form > p {
+  margin: 8px 0 0;
+  color: #958c81;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.suggestion-form > p.suggestion-error {
+  color: var(--accent-dark);
+}
+
 .pending-picks {
   min-width: 0;
   margin: clamp(30px, 5vh, 68px) 0;

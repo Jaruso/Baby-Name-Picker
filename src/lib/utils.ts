@@ -1,4 +1,4 @@
-import type { Room } from "../types";
+import type { NameOption, Room } from "../types";
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -16,14 +16,28 @@ export function matchIds(room: Room): string[] {
   const memberIds = Object.keys(room.members ?? {});
   if (memberIds.length < 2) return [];
 
-  return room.order.filter((nameId) =>
+  return roomNameIds(room).filter((nameId) =>
     memberIds.every((memberId) => room.decisions?.[memberId]?.[nameId] === "like"),
   );
 }
 
+export function customSuggestionIds(room: Room): string[] {
+  return Object.values(room.suggestions ?? {})
+    .sort((left, right) => left.createdAt - right.createdAt)
+    .map(({ id }) => id);
+}
+
+export function roomNameIds(room: Room): string[] {
+  return [...room.order, ...customSuggestionIds(room)];
+}
+
+export function roomName(room: Room, nameId: string): NameOption | undefined {
+  return room.names[nameId] ?? room.suggestions?.[nameId];
+}
+
 export function unmatchedLikeIds(room: Room, uid: string): string[] {
   const matched = new Set(matchIds(room));
-  return room.order
+  return roomNameIds(room)
     .filter((nameId) => room.decisions?.[uid]?.[nameId] === "like" && !matched.has(nameId))
     .reverse();
 }

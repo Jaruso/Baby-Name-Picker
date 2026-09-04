@@ -29,6 +29,8 @@ Swipe through the same names separately. Individual choices stay out of sight, a
 
 Names you keep first appear in your private shortlist. They move to **Your matches** only after your partner keeps them too.
 
+Have a name in mind already? Add it from the room sidebar. It is automatically marked as a name you kept and shown next to your partner for their private decision.
+
 The name stream automatically replenishes as you browse. A name you have already kept or passed will not appear again in that room.
 
 There is no account to create and no list of one person's private choices for the other person to inspect.

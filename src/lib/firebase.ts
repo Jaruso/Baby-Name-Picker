@@ -11,12 +11,13 @@ import {
   off,
   onDisconnect,
   onValue,
+  push,
   ref,
   remove,
   set,
   update,
 } from "firebase/database";
-import type { Choice, NameFilter, NameOption, Room } from "../types";
+import type { Choice, CustomSuggestion, NameFilter, NameOption, Room } from "../types";
 import { fetchNameBatch } from "./names";
 import { createRoomCode } from "./utils";
 
@@ -119,7 +120,7 @@ export async function appendNamesToLiveRoom(
     room.filter,
     room.code,
     page,
-    Object.values(room.names).map(({ name }) => name),
+    [...Object.values(room.names), ...Object.values(room.suggestions ?? {})].map(({ name }) => name),
   );
 
   if (batch.names.length) {
@@ -195,6 +196,45 @@ export async function saveChoice(
 export async function removeChoice(code: string, uid: string, nameId: string): Promise<void> {
   if (!database) return;
   await remove(ref(database, `rooms/${code}/decisions/${uid}/${nameId}`));
+}
+
+function normalizeSuggestedName(value: string): string {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+export async function submitCustomName(
+  room: Room,
+  uid: string,
+  rawName: string,
+): Promise<CustomSuggestion> {
+  if (!database) throw new Error("Firebase is not configured.");
+  const name = normalizeSuggestedName(rawName);
+  if (!/^[A-Za-z][A-Za-z' -]{0,38}$/.test(name)) {
+    throw new Error("Use a name with letters, spaces, apostrophes, or hyphens.");
+  }
+
+  const key = name.toLocaleLowerCase().replace(/[^a-z]/g, "");
+  const knownNames = [...Object.values(room.names), ...Object.values(room.suggestions ?? {})];
+  if (knownNames.some((option) => option.name.toLocaleLowerCase().replace(/[^a-z]/g, "") === key)) {
+    throw new Error("That name is already in this room.");
+  }
+
+  const suggestionRef = push(ref(database, `rooms/${room.code}/suggestions`));
+  if (!suggestionRef.key) throw new Error("Could not reserve this name. Please try again.");
+
+  const suggestion: CustomSuggestion = {
+    id: suggestionRef.key,
+    name,
+    gender: "custom",
+    origin: "CUSTOM",
+    submittedBy: uid,
+    createdAt: Date.now(),
+  };
+  await update(ref(database, `rooms/${room.code}`), {
+    [`suggestions/${suggestion.id}`]: suggestion,
+    [`decisions/${uid}/${suggestion.id}`]: "like",
+  });
+  return suggestion;
 }
 
 export async function leaveLiveRoom(code: string, uid: string): Promise<void> {

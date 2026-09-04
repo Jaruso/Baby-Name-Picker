@@ -54,6 +54,7 @@ Anonymous Firebase identity and the most recent room code are persisted in the b
 - Rooms reject client reads after 24 hours.
 - Presence is removed automatically when a browser disconnects.
 - Every kept or passed name remains in the room until it ends, providing the deduplication history for later API batches.
+- Each member can add a custom name suggestion. It is stored with that member's initial **like** and prioritized for the other member to review.
 - The ordering of each user's three most recent passes is kept in `sessionStorage`; undoing removes that decision from Firebase and reuses the name already stored in the room.
 - The room creator fetches and appends another batch when either participant nears the end of the currently loaded names.
 - Choosing **Leave room** removes that member and their choices.
