@@ -1,6 +1,6 @@
 import { getApp, getApps, initializeApp } from "firebase/app";
 import {
-  browserSessionPersistence,
+  browserLocalPersistence,
   getAuth,
   setPersistence,
   signInAnonymously,
@@ -42,9 +42,12 @@ let authPromise: Promise<string> | null = null;
 
 async function ensureUser(): Promise<string> {
   if (!auth) throw new Error("Firebase is not configured.");
-  if (auth.currentUser) return auth.currentUser.uid;
+  if (auth.currentUser) {
+    await setPersistence(auth, browserLocalPersistence);
+    return auth.currentUser.uid;
+  }
   if (!authPromise) {
-    authPromise = setPersistence(auth, browserSessionPersistence)
+    authPromise = setPersistence(auth, browserLocalPersistence)
       .then(() => signInAnonymously(auth))
       .then(({ user }) => user.uid)
       .finally(() => {

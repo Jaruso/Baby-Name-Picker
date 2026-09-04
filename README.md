@@ -33,6 +33,8 @@ The name stream automatically replenishes as you browse. A name you have already
 
 There is no account to create and no list of one person's private choices for the other person to inspect.
 
+If you return from the same browser within 24 hours, choose **Resume room** on the home screen to continue where you left off.
+
 ## The name collection
 
 Baby Name Picker focuses on conventional English-language names commonly used in the United States, United Kingdom, Ireland, Canada, Australia, and New Zealand.

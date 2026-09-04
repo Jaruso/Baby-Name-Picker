@@ -3,6 +3,7 @@ import {
   ChevronRight,
   Copy,
   Heart,
+  History,
   LogOut,
   Undo2,
   Users,
@@ -23,6 +24,12 @@ import {
   subscribeToRoom,
 } from "./lib/firebase";
 import { fetchNameBatch } from "./lib/names";
+import {
+  clearActiveSession,
+  type ActiveSession,
+  readActiveSession,
+  saveActiveSession,
+} from "./lib/activeSession";
 import { forgetPass, latestAvailablePass, rememberPass } from "./lib/passHistory";
 import { inviteUrl, matchIds, normalizeRoomCode, originLabel, unmatchedLikeIds } from "./lib/utils";
 
@@ -92,13 +99,17 @@ interface HomeProps {
   busy: boolean;
   error: string;
   initialCode: string;
+  resumeSession: ActiveSession | null;
   onCreate: (nickname: string, filter: NameFilter) => Promise<void>;
   onJoin: (nickname: string, code: string) => Promise<void>;
+  onResume: () => void;
 }
 
-function Home({ busy, error, initialCode, onCreate, onJoin }: HomeProps) {
+function Home({ busy, error, initialCode, resumeSession, onCreate, onJoin, onResume }: HomeProps) {
   const [mode, setMode] = useState<HomeMode>(initialCode ? "join" : "create");
-  const [nickname, setNickname] = useState(() => sessionStorage.getItem("baby-name-picker-name") ?? "");
+  const [nickname, setNickname] = useState(
+    () => sessionStorage.getItem("baby-name-picker-name") ?? resumeSession?.nickname ?? "",
+  );
   const [code, setCode] = useState(initialCode);
   const [filter, setFilter] = useState<NameFilter>("all");
 
@@ -129,6 +140,24 @@ function Home({ busy, error, initialCode, onCreate, onJoin }: HomeProps) {
           <p className="intro">
             Swipe privately through the same list. You’ll only see a name when you both keep it.
           </p>
+
+          {resumeSession && isFirebaseConfigured && !initialCode && (
+            <motion.button
+              type="button"
+              className="resume-session"
+              onClick={onResume}
+              disabled={busy}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <History size={17} strokeWidth={1.7} />
+              <span>
+                <small>Continue where you left off</small>
+                <strong>Resume room {resumeSession.code}</strong>
+              </span>
+              <ChevronRight size={18} />
+            </motion.button>
+          )}
 
           <form className="session-form" onSubmit={submit}>
             <div className="mode-switch" role="tablist" aria-label="Choose a session action">
@@ -568,6 +597,7 @@ function App() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [streamError, setStreamError] = useState("");
   const [passHistory, setPassHistory] = useState<string[]>([]);
+  const [resumeSession, setResumeSession] = useState<ActiveSession | null>(() => readActiveSession());
   const requestedPages = useRef(new Set<string>());
   const roomCode = room?.code;
 
@@ -577,6 +607,8 @@ function App() {
       roomCode,
       (nextRoom) => {
         if (!nextRoom) {
+          clearActiveSession();
+          setResumeSession(null);
           setRoom(null);
           setUid("");
           setError("That session has ended.");
@@ -659,6 +691,9 @@ function App() {
     try {
       if (isFirebaseConfigured) {
         const result = await createLiveRoom(nickname, filter);
+        const savedSession = { code: result.room.code, nickname };
+        saveActiveSession(savedSession);
+        setResumeSession(savedSession);
         setRoom(result.room);
         setUid(result.uid);
         setDemo(false);
@@ -686,12 +721,20 @@ function App() {
     setStreamError("");
     try {
       const result = await joinLiveRoom(code, nickname);
+      const savedSession = { code: result.room.code, nickname };
+      saveActiveSession(savedSession);
+      setResumeSession(savedSession);
       setRoom(result.room);
       setUid(result.uid);
       setDemo(false);
       window.history.replaceState({}, "", `?room=${code}`);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not join the room.");
+      const message = caught instanceof Error ? caught.message : "Could not join the room.";
+      if (resumeSession?.code === code && /not found|expired/i.test(message)) {
+        clearActiveSession();
+        setResumeSession(null);
+      }
+      setError(message);
     } finally {
       setBusy(false);
     }
@@ -763,11 +806,25 @@ function App() {
     setDemo(false);
     setError("");
     setPassHistory([]);
+    clearActiveSession();
+    setResumeSession(null);
     window.history.replaceState({}, "", window.location.pathname);
   };
 
   if (!room || !uid) {
-    return <Home busy={busy} error={error} initialCode={initialCode} onCreate={handleCreate} onJoin={handleJoin} />;
+    return (
+      <Home
+        busy={busy}
+        error={error}
+        initialCode={initialCode}
+        resumeSession={resumeSession}
+        onCreate={handleCreate}
+        onJoin={handleJoin}
+        onResume={() => {
+          if (resumeSession) void handleJoin(resumeSession.nickname, resumeSession.code);
+        }}
+      />
+    );
   }
 
   return (

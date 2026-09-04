@@ -47,6 +47,8 @@ Restart the development server. The app header should change from **Local previe
 
 Firebase web configuration values identify the Firebase project; they are not server secrets. Access control lives in the database rules.
 
+Anonymous Firebase identity and the most recent room code are persisted in the browser so the same browser can offer **Resume room** while that room remains active.
+
 ### Session data behavior
 
 - Rooms reject client reads after 24 hours.

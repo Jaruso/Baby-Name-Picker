@@ -194,6 +194,53 @@ input:focus-visible {
   line-height: 1.55;
 }
 
+.resume-session {
+  display: grid;
+  width: 100%;
+  max-width: 430px;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 2px;
+  margin: -6px 0 22px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--green);
+  cursor: pointer;
+  text-align: left;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.resume-session:hover:not(:disabled) {
+  border-color: var(--green);
+  color: #315745;
+}
+
+.resume-session:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.resume-session > span {
+  display: grid;
+  gap: 2px;
+}
+
+.resume-session small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.resume-session strong {
+  font-family: "Newsreader", serif;
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+}
+
 .session-form {
   max-width: 430px;
 }
