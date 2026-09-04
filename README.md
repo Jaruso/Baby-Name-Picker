@@ -8,7 +8,7 @@ Yes, for a personal or small shared app:
 
 - **Hosting:** GitHub Pages is free from a public repository on GitHub Free.
 - **Live rooms:** Firebase's no-cost Spark plan requires no payment method. Its Realtime Database allowance currently includes 100 simultaneous connections, 1 GB stored, and 10 GB/month downloaded—far more than a two-person personal app should use.
-- **Names:** [Random User Generator](https://randomuser.me/) is a public, no-key API. The app has a built-in fallback deck if it is unavailable.
+- **Names:** [Random User Generator](https://randomuser.me/) is a public, no-key API. Requests are limited to its US, UK, Irish, Canadian, Australian, and New Zealand datasets, then filtered through a curated conventional English-language allowlist. The bundled list also fills gaps or replaces the API during outages.
 - **Local preview:** With no Firebase variables, the app automatically opens a demo room with a simulated partner.
 
 GitHub Pages itself only serves static files. It cannot provide a shared database, WebSocket server, or session process. Firebase is the small realtime layer that lets two separate browsers see the same room.

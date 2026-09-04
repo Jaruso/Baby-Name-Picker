@@ -6,19 +6,25 @@ interface RandomUserResult {
   nat: string;
 }
 
+export const ALLOWED_NAME_NATIONALITIES = ["us", "gb", "ie", "ca", "au", "nz"] as const;
+
 const FALLBACK_FEMALE = [
-  "Ada", "Alba", "Alice", "Amara", "Anya", "Celia", "Clara", "Dahlia", "Eden", "Eliza",
-  "Eloise", "Esme", "Eva", "Flora", "Freya", "Georgia", "Hazel", "Iris", "Isla", "June",
-  "Kaia", "Lena", "Lila", "Lucy", "Maeve", "Mara", "Maya", "Mina", "Nora", "Olive",
-  "Opal", "Phoebe", "Romy", "Ruby", "Sadie", "Thea", "Vera", "Willa", "Zara", "Zoe",
+  "Abigail", "Alice", "Amelia", "Anna", "Audrey", "Beatrice", "Beth", "Caroline", "Catherine", "Charlotte",
+  "Clara", "Claire", "Eleanor", "Eliza", "Elizabeth", "Ella", "Emily", "Emma", "Evelyn", "Florence",
+  "Georgia", "Grace", "Hannah", "Harriet", "Hazel", "Helen", "Holly", "Jane", "Julia", "Lucy",
+  "Madeline", "Margaret", "Nora", "Olivia", "Rose", "Ruby", "Sophie", "Victoria", "Violet", "Willa",
 ];
 
 const FALLBACK_MALE = [
-  "Adrian", "August", "Caleb", "Callum", "Cassian", "Cian", "Eli", "Emil", "Ezra", "Felix",
-  "Finn", "Hugo", "Idris", "Ira", "Jasper", "Jonah", "Jude", "Julian", "Kit", "Leo",
-  "Levi", "Luca", "Mateo", "Max", "Miles", "Milo", "Nico", "Noah", "Oliver", "Orson",
-  "Oscar", "Otis", "Remy", "Rhys", "Rowan", "Silas", "Theo", "Tobias", "Wes", "Wyatt",
+  "Adam", "Andrew", "Arthur", "Benjamin", "Charles", "Christopher", "Daniel", "Edward", "Elias", "Elliot",
+  "Ethan", "Finn", "Frederick", "George", "Henry", "Hugh", "Jack", "James", "John", "Joseph",
+  "Julian", "Leo", "Liam", "Louis", "Luke", "Matthew", "Miles", "Nathan", "Nicholas", "Noah",
+  "Oliver", "Oscar", "Owen", "Peter", "Samuel", "Simon", "Theodore", "Thomas", "William", "Wyatt",
 ];
+
+const ENGLISH_NAME_ALLOWLIST = new Set(
+  [...FALLBACK_FEMALE, ...FALLBACK_MALE].map((name) => name.toLocaleLowerCase()),
+);
 
 function toOptions(
   values: Array<{ name: string; gender: "female" | "male"; origin: string }>,
@@ -53,30 +59,50 @@ export async function fetchNameDeck(
   filter: NameFilter,
   seed: string,
 ): Promise<{ names: NameOption[]; source: "randomuser" | "fallback" }> {
-  const query = new URLSearchParams({
-    results: "80",
-    inc: "name,gender,nat",
-    noinfo: "",
-    seed: seed.toLocaleLowerCase(),
-  });
-  if (filter !== "all") query.set("gender", filter);
+  const apiUrl = buildNameApiUrl(filter, seed);
 
   try {
-    const response = await fetch(`https://randomuser.me/api/?${query.toString()}`);
+    const response = await fetch(apiUrl);
     if (!response.ok) throw new Error(`Name API returned ${response.status}`);
     const payload = (await response.json()) as { results?: RandomUserResult[] };
-    const results = payload.results ?? [];
-    const names = toOptions(
+    const allowedNationalities = new Set(ALLOWED_NAME_NATIONALITIES.map((code) => code.toUpperCase()));
+    const results = (payload.results ?? []).filter(
+      (person) => allowedNationalities.has(person.nat) && isAllowedEnglishName(person.name.first),
+    );
+    const apiNames = toOptions(
       results.map((person) => ({
         name: person.name.first,
         gender: person.gender,
         origin: person.nat,
       })),
-    ).slice(0, 60);
-    if (names.length < 24) throw new Error("Name API returned too few unique names");
-    return { names, source: "randomuser" };
+    );
+    const apiNameSet = new Set(apiNames.map((name) => name.name.toLocaleLowerCase()));
+    const fillNames = fallbackNames(filter).filter(
+      (name) => !apiNameSet.has(name.name.toLocaleLowerCase()),
+    );
+    const limit = filter === "all" ? 60 : 40;
+    return {
+      names: [...apiNames, ...fillNames].slice(0, limit),
+      source: apiNames.length ? "randomuser" : "fallback",
+    };
   } catch (error) {
     console.warn("Using the built-in name deck because the public API was unavailable.", error);
     return { names: fallbackNames(filter), source: "fallback" };
   }
+}
+
+export function buildNameApiUrl(filter: NameFilter, seed: string): string {
+  const query = new URLSearchParams({
+    results: "500",
+    inc: "name,gender,nat",
+    noinfo: "",
+    seed: seed.toLocaleLowerCase(),
+    nat: ALLOWED_NAME_NATIONALITIES.join(","),
+  });
+  if (filter !== "all") query.set("gender", filter);
+  return `https://randomuser.me/api/1.4/?${query.toString()}`;
+}
+
+export function isAllowedEnglishName(name: string): boolean {
+  return ENGLISH_NAME_ALLOWLIST.has(name.toLocaleLowerCase());
 }
