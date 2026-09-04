@@ -1,0 +1,57 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$room": {
+        ".read": "auth != null && data.child('expiresAt').val() > now",
+        ".write": "auth != null && ((!data.exists() && newData.child('createdBy').val() === auth.uid) || (data.exists() && !newData.exists() && data.child('createdBy').val() === auth.uid))",
+        ".validate": "newData.hasChildren(['code', 'createdBy', 'createdAt', 'expiresAt', 'filter', 'source', 'names', 'order', 'members'])",
+        "code": {
+          ".validate": "newData.isString() && newData.val() === $room && newData.val().matches(/^[A-HJ-NP-Z2-9]{6}$/)"
+        },
+        "createdBy": {
+          ".validate": "newData.isString() && newData.val() === auth.uid && (!data.exists() || newData.val() === data.val())"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && (!data.exists() || newData.val() === data.val())"
+        },
+        "expiresAt": {
+          ".validate": "newData.isNumber() && newData.val() > now && newData.val() <= now + 86400000 && (!data.exists() || newData.val() === data.val())"
+        },
+        "filter": {
+          ".validate": "newData.val() === 'all' || newData.val() === 'female' || newData.val() === 'male'"
+        },
+        "source": {
+          ".validate": "newData.val() === 'randomuser' || newData.val() === 'fallback'"
+        },
+        "names": {
+          ".validate": "newData.hasChildren() && newData.numChildren() <= 80"
+        },
+        "order": {
+          ".validate": "newData.hasChildren() && newData.numChildren() <= 80"
+        },
+        "members": {
+          "$uid": {
+            ".write": "auth != null && $uid === auth.uid && root.child('rooms').child($room).child('expiresAt').val() > now && (data.exists() || root.child('rooms').child($room).child('members').numChildren() < 2)",
+            ".validate": "newData.hasChildren(['name', 'joinedAt']) && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 28 && newData.child('joinedAt').isNumber()"
+          }
+        },
+        "presence": {
+          "$uid": {
+            ".write": "auth != null && $uid === auth.uid && root.child('rooms').child($room).child('members').child($uid).exists()",
+            ".validate": "newData.val() === true"
+          }
+        },
+        "decisions": {
+          "$uid": {
+            "$nameId": {
+              ".write": "auth != null && $uid === auth.uid && root.child('rooms').child($room).child('members').child($uid).exists() && root.child('rooms').child($room).child('names').child($nameId).exists()",
+              ".validate": "newData.val() === 'like' || newData.val() === 'pass'"
+            }
+          }
+        }
+      }
+    }
+  }
+}
