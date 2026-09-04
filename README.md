@@ -27,6 +27,8 @@ Swipe through the same names separately. Individual choices stay out of sight, a
    - Select **Back** to revisit one of your three most recent passes.
 5. When you both keep the same name, it appears immediately under **Your matches**.
 
+Names you keep first appear in your private shortlist. They move to **Your matches** only after your partner keeps them too.
+
 The name stream automatically replenishes as you browse. A name you have already kept or passed will not appear again in that room.
 
 There is no account to create and no list of one person's private choices for the other person to inspect.

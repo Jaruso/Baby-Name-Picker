@@ -598,6 +598,90 @@ input:focus-visible {
   line-height: 1.55;
 }
 
+.pending-picks {
+  min-width: 0;
+  margin: clamp(30px, 5vh, 68px) 0;
+}
+
+.pending-picks-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 13px;
+  border-bottom: 1px solid var(--line);
+}
+
+.pending-picks-heading .eyebrow {
+  margin-bottom: 6px;
+}
+
+.pending-picks-heading h2 {
+  margin: 0;
+  font-family: "Newsreader", serif;
+  font-size: clamp(24px, 2.1vw, 31px);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.pending-picks-heading > span {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.pending-pick-list {
+  max-height: min(25vh, 245px);
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.pending-pick-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 45px;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.pending-pick-list strong {
+  overflow: hidden;
+  font-family: "Newsreader", serif;
+  font-size: 21px;
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pending-pick-list span {
+  color: var(--green);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pending-picks-empty {
+  max-width: 215px;
+  margin: 15px 0 0;
+  color: var(--muted);
+  font-family: "Newsreader", serif;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
 .progress-label {
   display: flex;
   justify-content: space-between;
@@ -1237,6 +1321,16 @@ input:focus-visible {
     align-self: center;
   }
 
+  .pending-picks {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin: 0;
+  }
+
+  .pending-pick-list {
+    max-height: 175px;
+  }
+
   .privacy-note {
     display: none;
   }
@@ -1312,6 +1406,10 @@ input:focus-visible {
   .session-panel {
     grid-template-columns: 1fr;
     padding: 23px 18px;
+  }
+
+  .pending-picks {
+    grid-row: auto;
   }
 
   .room-help {

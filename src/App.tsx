@@ -24,7 +24,7 @@ import {
 } from "./lib/firebase";
 import { fetchNameBatch } from "./lib/names";
 import { forgetPass, latestAvailablePass, rememberPass } from "./lib/passHistory";
-import { inviteUrl, matchIds, normalizeRoomCode, originLabel } from "./lib/utils";
+import { inviteUrl, matchIds, normalizeRoomCode, originLabel, unmatchedLikeIds } from "./lib/utils";
 
 type HomeMode = "create" | "join";
 
@@ -307,6 +307,7 @@ function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount
   const current = currentId ? room.names[currentId] : null;
   const nextNames = remainingIds.slice(1, 3).map((id) => room.names[id]);
   const matches = useMemo(() => matchIds(room), [room]);
+  const unmatchedLikes = useMemo(() => unmatchedLikeIds(room, uid), [room, uid]);
   const memberIds = Object.keys(room.members ?? {});
   const onlineCount = Object.keys(room.presence ?? {}).length;
   const isCreator = room.createdBy === uid;
@@ -379,6 +380,40 @@ function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount
                 : `You and ${room.members[memberIds.find((id) => id !== uid) ?? uid]?.name} are choosing independently.`}
             </p>
           </div>
+
+          <section className="pending-picks" aria-labelledby="pending-picks-title">
+            <div className="pending-picks-heading">
+              <div>
+                <p className="eyebrow">Your private shortlist</p>
+                <h2 id="pending-picks-title">Names you kept</h2>
+              </div>
+              <span>{unmatchedLikes.length}</span>
+            </div>
+
+            {unmatchedLikes.length ? (
+              <ol className="pending-pick-list">
+                <AnimatePresence initial={false}>
+                  {unmatchedLikes.map((id) => (
+                    <motion.li
+                      key={id}
+                      layout
+                      initial={{ opacity: 0, y: 7 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -7 }}
+                      transition={{ duration: 0.18 }}
+                    >
+                      <strong>{room.names[id].name}</strong>
+                      <span>Waiting</span>
+                    </motion.li>
+                  ))}
+                </AnimatePresence>
+              </ol>
+            ) : (
+              <p className="pending-picks-empty">
+                Names you keep will wait here until they become a match.
+              </p>
+            )}
+          </section>
 
           <div className="session-progress">
             <div className="progress-label">

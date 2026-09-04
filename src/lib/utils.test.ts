@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Room } from "../types";
-import { createRoomCode, matchIds, normalizeRoomCode } from "./utils";
+import { createRoomCode, matchIds, normalizeRoomCode, unmatchedLikeIds } from "./utils";
 
 describe("room utilities", () => {
   it("normalizes invite codes", () => {
@@ -23,5 +23,19 @@ describe("room utilities", () => {
     } as unknown as Room;
 
     expect(matchIds(room)).toEqual(["one"]);
+  });
+
+  it("lists only the current user's unmatched likes, newest first", () => {
+    const room = {
+      order: ["one", "two", "three"],
+      members: { a: { name: "A", joinedAt: 1 }, b: { name: "B", joinedAt: 1 } },
+      decisions: {
+        a: { one: "like", two: "like", three: "like" },
+        b: { one: "like", two: "pass" },
+      },
+    } as unknown as Room;
+
+    expect(unmatchedLikeIds(room, "a")).toEqual(["three", "two"]);
+    expect(unmatchedLikeIds(room, "b")).toEqual([]);
   });
 });

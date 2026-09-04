@@ -21,6 +21,13 @@ export function matchIds(room: Room): string[] {
   );
 }
 
+export function unmatchedLikeIds(room: Room, uid: string): string[] {
+  const matched = new Set(matchIds(room));
+  return room.order
+    .filter((nameId) => room.decisions?.[uid]?.[nameId] === "like" && !matched.has(nameId))
+    .reverse();
+}
+
 export function originLabel(code: string): string {
   try {
     return new Intl.DisplayNames(["en"], { type: "region" }).of(code) ?? code;
