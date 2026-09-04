@@ -777,6 +777,45 @@ input:focus-visible {
   margin-top: 24px;
 }
 
+.back-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 3px;
+  margin-top: 13px;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+
+.back-action:hover:not(:disabled) {
+  border-color: currentColor;
+  color: var(--ink);
+}
+
+.back-action:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
+.back-action small {
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.back-action kbd {
+  margin-left: 3px;
+  font-family: inherit;
+  font-size: 12px;
+  opacity: 0.55;
+}
+
 .stream-waiting .finished-mark {
   background: var(--ink);
 }
@@ -1318,6 +1357,10 @@ input:focus-visible {
   }
 
   .decision-button kbd {
+    display: none;
+  }
+
+  .back-action kbd {
     display: none;
   }
 

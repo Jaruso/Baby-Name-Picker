@@ -24,6 +24,7 @@ Swipe through the same names separately. Individual choices stay out of sight, a
 4. Make your choices independently:
    - Swipe left or select **Pass** to skip a name.
    - Swipe right or select **Keep** to save a name privately.
+   - Select **Back** to revisit one of your three most recent passes.
 5. When you both keep the same name, it appears immediately under **Your matches**.
 
 The name stream automatically replenishes as you browse. A name you have already kept or passed will not appear again in that room.
@@ -41,6 +42,7 @@ Names are randomized for each new room using [Random User Generator](https://ran
 - A room is made for two people.
 - Both people receive the same continuously replenished name stream but can move through it at their own pace.
 - Kept and passed names remain in the room's temporary history, preventing repeats for the life of the session.
+- Your three most recent passes are remembered in the current browser session so you can change your mind.
 - A room remains available for up to 24 hours.
 - Leaving removes your choices; ending the room removes the shared session for both people.
 - Anyone with the invite link or room code can attempt to join, so share it only with your partner.

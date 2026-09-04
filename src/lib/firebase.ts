@@ -189,6 +189,11 @@ export async function saveChoice(
   await set(ref(database, `rooms/${code}/decisions/${uid}/${nameId}`), choice);
 }
 
+export async function removeChoice(code: string, uid: string, nameId: string): Promise<void> {
+  if (!database) return;
+  await remove(ref(database, `rooms/${code}/decisions/${uid}/${nameId}`));
+}
+
 export async function leaveLiveRoom(code: string, uid: string): Promise<void> {
   if (!database) return;
   // Keep membership in place until the other protected session data is gone.

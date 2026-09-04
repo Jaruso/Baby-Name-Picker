@@ -4,6 +4,7 @@ import {
   Copy,
   Heart,
   LogOut,
+  Undo2,
   Users,
   X,
 } from "lucide-react";
@@ -17,13 +18,32 @@ import {
   isFirebaseConfigured,
   joinLiveRoom,
   leaveLiveRoom,
+  removeChoice,
   saveChoice,
   subscribeToRoom,
 } from "./lib/firebase";
 import { fetchNameBatch } from "./lib/names";
+import { forgetPass, latestAvailablePass, rememberPass } from "./lib/passHistory";
 import { inviteUrl, matchIds, normalizeRoomCode, originLabel } from "./lib/utils";
 
 type HomeMode = "create" | "join";
+
+function passHistoryKey(code: string, uid: string): string {
+  return `baby-name-picker-passes:${code}:${uid}`;
+}
+
+function readPassHistory(code: string, uid: string): string[] {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(passHistoryKey(code, uid)) ?? "[]");
+    return Array.isArray(value) ? value.filter((id): id is string => typeof id === "string").slice(-3) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writePassHistory(code: string, uid: string, history: string[]): void {
+  sessionStorage.setItem(passHistoryKey(code, uid), JSON.stringify(history));
+}
 
 function createDemoRoom(names: NameOption[], filter: NameFilter, source: Room["source"]): Room {
   const partnerChoices = demoPartnerChoices(names);
@@ -269,11 +289,13 @@ interface RoomViewProps {
   demo: boolean;
   isLoadingMore: boolean;
   streamError: string;
+  recentPassCount: number;
   onChoose: (nameId: string, choice: Choice) => void;
+  onBack: () => void;
   onExit: (endForEveryone: boolean) => Promise<void>;
 }
 
-function RoomView({ room, uid, demo, isLoadingMore, streamError, onChoose, onExit }: RoomViewProps) {
+function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount, onChoose, onBack, onExit }: RoomViewProps) {
   const [copied, setCopied] = useState(false);
   const [showExit, setShowExit] = useState(false);
   const [celebration, setCelebration] = useState<NameOption | null>(null);
@@ -305,10 +327,14 @@ function RoomView({ room, uid, demo, isLoadingMore, streamError, onChoose, onExi
       if (!current || celebration || showExit) return;
       if (event.key === "ArrowLeft") onChoose(current.id, "pass");
       if (event.key === "ArrowRight") onChoose(current.id, "like");
+      if (event.key === "Backspace" && recentPassCount) {
+        event.preventDefault();
+        onBack();
+      }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [celebration, current, onChoose, showExit]);
+  }, [celebration, current, onBack, onChoose, recentPassCount, showExit]);
 
   const copyInvite = async () => {
     if (demo) return;
@@ -417,6 +443,18 @@ function RoomView({ room, uid, demo, isLoadingMore, streamError, onChoose, onExi
               <button type="button" onClick={() => setShowExit(true)}>Finish session <ChevronRight size={17} /></button>
             </div>
           )}
+          <button
+            type="button"
+            className="back-action"
+            disabled={!recentPassCount}
+            onClick={onBack}
+            aria-label={recentPassCount ? `Go back to a recent pass. ${recentPassCount} available.` : "No recent passes to revisit"}
+          >
+            <Undo2 size={15} strokeWidth={1.8} />
+            <span>Back</span>
+            <small>{recentPassCount ? `${recentPassCount} recent` : "last 3 passes"}</small>
+            <kbd>⌫</kbd>
+          </button>
         </section>
 
         <aside className="matches-panel">
@@ -494,6 +532,7 @@ function App() {
   const [error, setError] = useState("");
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [streamError, setStreamError] = useState("");
+  const [passHistory, setPassHistory] = useState<string[]>([]);
   const requestedPages = useRef(new Set<string>());
   const roomCode = room?.code;
 
@@ -514,6 +553,14 @@ function App() {
       () => setError("The room lost its connection. Check your network and try again."),
     );
   }, [demo, roomCode]);
+
+  useEffect(() => {
+    if (!roomCode || !uid) {
+      setPassHistory([]);
+      return;
+    }
+    setPassHistory(readPassHistory(roomCode, uid));
+  }, [roomCode, uid]);
 
   useEffect(() => {
     if (!room || !uid || room.exhausted || room.createdBy !== uid) return;
@@ -617,6 +664,13 @@ function App() {
 
   const handleChoose = useCallback((nameId: string, choice: Choice) => {
     if (!room || !uid) return;
+    setPassHistory((currentHistory) => {
+      const nextHistory = choice === "pass"
+        ? rememberPass(currentHistory, nameId)
+        : forgetPass(currentHistory, nameId);
+      writePassHistory(room.code, uid, nextHistory);
+      return nextHistory;
+    });
     setRoom((currentRoom) => currentRoom ? ({
       ...currentRoom,
       decisions: {
@@ -631,6 +685,39 @@ function App() {
     }
   }, [demo, room, uid]);
 
+  const handleBack = useCallback(() => {
+    if (!room || !uid) return;
+    const nameId = latestAvailablePass(
+      passHistory,
+      (id) => Boolean(room.names[id] && room.decisions?.[uid]?.[id] === "pass"),
+    );
+
+    if (!nameId) {
+      setPassHistory([]);
+      writePassHistory(room.code, uid, []);
+      return;
+    }
+
+    const nextHistory = forgetPass(passHistory, nameId);
+    setPassHistory(nextHistory);
+    writePassHistory(room.code, uid, nextHistory);
+    setRoom((currentRoom) => {
+      if (!currentRoom) return currentRoom;
+      const nextChoices = { ...currentRoom.decisions?.[uid] };
+      delete nextChoices[nameId];
+      return {
+        ...currentRoom,
+        decisions: { ...currentRoom.decisions, [uid]: nextChoices },
+      };
+    });
+
+    if (!demo) {
+      void removeChoice(room.code, uid, nameId).catch(() => {
+        setError("That name could not be restored. Please check your connection.");
+      });
+    }
+  }, [demo, passHistory, room, uid]);
+
   const handleExit = async (endForEveryone: boolean) => {
     if (room && !demo) {
       if (endForEveryone) await endLiveRoom(room.code);
@@ -640,6 +727,7 @@ function App() {
     setUid("");
     setDemo(false);
     setError("");
+    setPassHistory([]);
     window.history.replaceState({}, "", window.location.pathname);
   };
 
@@ -654,7 +742,9 @@ function App() {
       demo={demo}
       isLoadingMore={isLoadingMore}
       streamError={streamError}
+      recentPassCount={passHistory.length}
       onChoose={handleChoose}
+      onBack={handleBack}
       onExit={handleExit}
     />
   );
