@@ -6,7 +6,7 @@
 
 Swipe through the same names separately. Individual choices stay out of sight, and mutual favorites become your shared shortlist.
 
-[**Open Baby Name Picker →**](https://jaruso.github.io/name-picker/)
+[**Open Baby Name Picker →**](https://jaruso.github.io/Baby-Name-Picker/)
 
 <br />
 
@@ -18,7 +18,7 @@ Swipe through the same names separately. Individual choices stay out of sight, a
 
 ## How to use it
 
-1. Open [Baby Name Picker](https://jaruso.github.io/name-picker/) on your phone or computer.
+1. Open [Baby Name Picker](https://jaruso.github.io/Baby-Name-Picker/) on your phone or computer.
 2. Enter your first name and choose whether to browse a mix, girls' names, or boys' names.
 3. Select **Create room**, then send the room link or six-character code to your partner.
 4. Make your choices independently:
