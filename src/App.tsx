@@ -71,14 +71,14 @@ interface HomeProps {
 
 function Home({ busy, error, initialCode, onCreate, onJoin }: HomeProps) {
   const [mode, setMode] = useState<HomeMode>(initialCode ? "join" : "create");
-  const [nickname, setNickname] = useState(() => sessionStorage.getItem("same-page-name") ?? "");
+  const [nickname, setNickname] = useState(() => sessionStorage.getItem("baby-name-picker-name") ?? "");
   const [code, setCode] = useState(initialCode);
   const [filter, setFilter] = useState<NameFilter>("all");
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!nickname.trim()) return;
-    sessionStorage.setItem("same-page-name", nickname.trim());
+    sessionStorage.setItem("baby-name-picker-name", nickname.trim());
     if (mode === "create") await onCreate(nickname.trim(), filter);
     else await onJoin(nickname.trim(), normalizeRoomCode(code));
   };
@@ -86,9 +86,9 @@ function Home({ busy, error, initialCode, onCreate, onJoin }: HomeProps) {
   return (
     <main className="welcome-shell">
       <header className="welcome-nav">
-        <a className="wordmark" href="./" aria-label="Same Page home">
+        <a className="wordmark" href="./" aria-label="Baby Name Picker home">
           <BrandMark />
-          <span>same page</span>
+          <span>Baby Name Picker</span>
         </a>
         <span className={`backend-note ${isFirebaseConfigured ? "is-live" : ""}`}>
           <span /> {isFirebaseConfigured ? "Live rooms ready" : "Local preview"}
@@ -314,7 +314,7 @@ function RoomView({ room, uid, demo, onChoose, onExit }: RoomViewProps) {
       <header className="room-nav">
         <a className="wordmark" href="./" onClick={(event) => { event.preventDefault(); setShowExit(true); }}>
           <BrandMark />
-          <span>same page</span>
+          <span>Baby Name Picker</span>
         </a>
         <div className="room-nav-actions">
           <span className="online-state"><i /> {onlineCount} online</span>
@@ -440,7 +440,7 @@ function RoomView({ room, uid, demo, onChoose, onExit }: RoomViewProps) {
             <motion.div className="celebration-ring" initial={{ scale: 0.3, rotate: -12 }} animate={{ scale: 1, rotate: 2 }} transition={{ type: "spring", stiffness: 190, damping: 18 }} />
             <motion.div className="celebration-copy" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.12 }}>
               <Heart size={26} fill="currentColor" />
-              <p>You’re on the same page</p>
+              <p>It’s a match</p>
               <h2>{celebration.name}</h2>
               <button type="button" onClick={() => setCelebration(null)}>Keep going <ChevronRight size={18} /></button>
             </motion.div>

@@ -1,4 +1,4 @@
-# Same Page
+# Baby Name Picker
 
 A mobile-first baby name picker for two people. Both partners swipe through the same deck independently; mutual likes appear as matches. The frontend is static and deploys to GitHub Pages.
 
