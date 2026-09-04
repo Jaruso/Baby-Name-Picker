@@ -74,7 +74,7 @@
         "decisions": {
           "$uid": {
             "$nameId": {
-              ".write": "auth != null && $uid === auth.uid && root.child('rooms').child($room).child('members').child($uid).exists() && (root.child('rooms').child($room).child('names').child($nameId).exists() || newData.parent().parent().parent().child('suggestions').child($nameId).exists())",
+              ".write": "auth != null && $uid === auth.uid && root.child('rooms').child($room).child('members').child($uid).exists() && (root.child('rooms').child($room).child('names').child($nameId).exists() || newData.parent().parent().parent().child('suggestions').child($nameId).exists() || (root.child('rooms').child($room).child('styles').child('modern').val() === true && $nameId.matches(/^style-modern-(female|male)-[a-z0-9]+$/)) || (root.child('rooms').child($room).child('styles').child('celtic').val() === true && $nameId.matches(/^style-celtic-(female|male)-[a-z0-9]+$/)) || (root.child('rooms').child($room).child('styles').child('french').val() === true && $nameId.matches(/^style-french-(female|male)-[a-z0-9]+$/)) || (root.child('rooms').child($room).child('styles').child('german').val() === true && $nameId.matches(/^style-german-(female|male)-[a-z0-9]+$/)) || (root.child('rooms').child($room).child('styles').child('italian').val() === true && $nameId.matches(/^style-italian-(female|male)-[a-z0-9]+$/)) || (root.child('rooms').child($room).child('styles').child('nordic').val() === true && $nameId.matches(/^style-nordic-(female|male)-[a-z0-9]+$/)))",
               ".validate": "newData.val() === 'like' || newData.val() === 'pass'"
             }
           }

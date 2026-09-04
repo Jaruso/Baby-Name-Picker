@@ -334,6 +334,7 @@ interface RoomViewProps {
   demo: boolean;
   isLoadingMore: boolean;
   streamError: string;
+  syncError: string;
   recentPassCount: number;
   onChoose: (nameId: string, choice: Choice) => void;
   onSuggest: (name: string) => Promise<void>;
@@ -342,7 +343,7 @@ interface RoomViewProps {
   onExit: (endForEveryone: boolean) => Promise<void>;
 }
 
-function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount, onChoose, onSuggest, onAddStyle, onBack, onExit }: RoomViewProps) {
+function RoomView({ room, uid, demo, isLoadingMore, streamError, syncError, recentPassCount, onChoose, onSuggest, onAddStyle, onBack, onExit }: RoomViewProps) {
   const [copied, setCopied] = useState(false);
   const [showExit, setShowExit] = useState(false);
   const [celebration, setCelebration] = useState<NameOption | null>(null);
@@ -580,6 +581,7 @@ function RoomView({ room, uid, demo, isLoadingMore, streamError, recentPassCount
               {isLoadingMore ? " · finding more…" : " · no repeats"}
             </p>
             {streamError && <p className="stream-error">{streamError}</p>}
+            {syncError && <p className="stream-error" role="alert">{syncError}</p>}
           </div>
 
           <div className="privacy-note">
@@ -868,6 +870,7 @@ function App() {
 
   const handleChoose = useCallback((nameId: string, choice: Choice) => {
     if (!room || !uid) return;
+    setError("");
     setPassHistory((currentHistory) => {
       const nextHistory = choice === "pass"
         ? rememberPass(currentHistory, nameId)
@@ -884,6 +887,15 @@ function App() {
     }) : currentRoom);
     if (!demo) {
       void saveChoice(room.code, uid, nameId, choice).catch(() => {
+        setRoom((currentRoom) => {
+          if (currentRoom?.decisions?.[uid]?.[nameId] !== choice) return currentRoom;
+          const choices = { ...currentRoom.decisions?.[uid] };
+          delete choices[nameId];
+          return {
+            ...currentRoom,
+            decisions: { ...currentRoom.decisions, [uid]: choices },
+          };
+        });
         setError("That choice did not sync. Please check your connection.");
       });
     }
@@ -1006,6 +1018,7 @@ function App() {
       demo={demo}
       isLoadingMore={isLoadingMore}
       streamError={streamError}
+      syncError={error}
       recentPassCount={passHistory.length}
       onChoose={handleChoose}
       onSuggest={handleSuggest}
